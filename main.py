@@ -1,112 +1,113 @@
 import pandas as pd
 
-# Открываем файл с процентами для каждого адреса (OmniX)
-with open('OmniX.txt', 'r') as file:
-    lines = file.readlines()
-    address_percentages_omnix = {}
 
-    # Пропускаем первую строку с заголовком
-    header_skipped = False
+def process_omnix(file_name):
+    with open(file_name, 'r') as file:
+        lines = file.readlines()
+        address_percentages_omnix = {}
 
-    for line in lines:
-        if not header_skipped:
-            header_skipped = True
-            continue
+        header_skipped = False
 
-        address, percentage = line.strip().split(',')
-        address_percentages_omnix[address.lower()] = float(percentage)
+        for line in lines:
+            if not header_skipped:
+                header_skipped = True
+                continue
+
+            address, percentage = line.strip().split(',')
+            address_percentages_omnix[address.lower()] = float(percentage)
+
+    return address_percentages_omnix
 
 
-# Открываем файл с адресами для сравнения
+def process_clusters(file_name):
+    with open(file_name, 'r') as file:
+        lines = file.readlines()
+        address_percentages_clusters = {}
+
+        header_skipped = False
+
+        for line in lines:
+            if not header_skipped:
+                header_skipped = True
+                continue
+
+            address, percentage_with_percent = line.strip().split(',')
+            percentage = float(percentage_with_percent.rstrip('%'))
+            address_percentages_clusters[address.lower()] = percentage
+
+    return address_percentages_clusters
+
+
+def process_tavaera(file_name):
+    with open(file_name, 'r') as file:
+        lines = file.readlines()
+        address_percentages_tavaera = {}
+
+        header_skipped = False
+
+        for line in lines:
+            if not header_skipped:
+                header_skipped = True
+                continue
+
+            address, percentage = line.strip().split(',')
+            address_percentages_tavaera[address.lower()] = float(percentage)
+
+    return address_percentages_tavaera
+
+
+def process_polyhedra(file_name):
+    df_polyhedra = pd.read_excel(file_name)
+
+    matching_addresses_polyhedra = []
+    matching_percentages_polyhedra = []
+
+    for address in df_polyhedra['address']:
+        if address in wallet_addresses:
+            matching_addresses_polyhedra.append(address)
+            matching_percentages_polyhedra.append(df_polyhedra.loc[df_polyhedra['address'] == address, 'percentage'].iloc[0])
+
+    total_percentage_polyhedra = sum(matching_percentages_polyhedra)
+
+    return total_percentage_polyhedra, matching_addresses_polyhedra
+
+
+def write_to_file(file_name, eligible_addresses):
+    with open(file_name, 'w') as file:
+        for address in eligible_addresses:
+            file.write(address + '\n')
+
+
+# Загрузка списка кошельков
+# Загрузка списка кошельков
 with open('wallets.txt', 'r') as file:
     lines = file.readlines()
+    wallet_addresses = [line.strip().lower() for line in lines]
 
-# Преобразуем список строк в список адресов, приводя их к нижнему регистру
-wallet_addresses = [line.strip().lower() for line in lines]
-
-# Проверяем, какие адреса из wallets.txt есть в address_percentages_omnix
-total_percentage_omnix = 0
-eligible_addresses_omnix = []
-
-for address in wallet_addresses:
-    if address in address_percentages_omnix:
-        total_percentage_omnix += address_percentages_omnix[address]
-        eligible_addresses_omnix.append(address)
-
-# Записываем элегибл адреса в файл eligible_omnix.txt
-with open('eligible_omnix.txt', 'w') as file:
-    for address in eligible_addresses_omnix:
-        file.write(address + '\n')
-
-# Выводим результаты для OmniX
+# Обработка файлов
+address_percentages_omnix = process_omnix('OmniX.txt')
+eligible_addresses_omnix = [address for address in wallet_addresses if address in address_percentages_omnix]
+total_percentage_omnix = sum(address_percentages_omnix[address] for address in eligible_addresses_omnix)
+write_to_file('eligible_omnix.txt', eligible_addresses_omnix)
 print(f"Общий процент для OmniX: {total_percentage_omnix}% | Кол-во eligible кошельков: {len(eligible_addresses_omnix)}")
-print("Элегибл адреса OmniX записаны в файл eligible_omnix.txt")
 
-# --------------------------------------------------------------------------------------------------------------
-
-# Открываем файл с процентами для каждого адреса (Clusters)
-with open('clusters.txt', 'r') as file:
-    lines = file.readlines()
-    address_percentages_clusters = {}
-
-    # Пропускаем первую строку с заголовком
-    header_skipped = False
-
-    for line in lines:
-        if not header_skipped:
-            header_skipped = True
-            continue
-
-        address, percentage_with_percent = line.strip().split(',')
-        # Убираем символ процента '%' и затем преобразуем строку в float
-        percentage = float(percentage_with_percent.rstrip('%'))
-        address_percentages_clusters[address.lower()] = percentage
-
-# Проверяем, какие адреса из wallets.txt есть в address_percentages_clusters
-total_percentage_clusters = 0
-eligible_addresses_clusters = []
-
-for address in wallet_addresses:
-    if address in address_percentages_clusters:
-        total_percentage_clusters += address_percentages_clusters[address]
-        eligible_addresses_clusters.append(address)
-
-# Записываем элегибл адреса в файл eligible_cluster.txt
-with open('eligible_cluster.txt', 'w') as file:
-    for address in eligible_addresses_clusters:
-        file.write(address + '\n')
-
-# Выводим результаты для Clusters
+address_percentages_clusters = process_clusters('clusters.txt')
+eligible_addresses_clusters = [address for address in wallet_addresses if address in address_percentages_clusters]
+total_percentage_clusters = sum(address_percentages_clusters[address] for address in eligible_addresses_clusters)
+write_to_file('eligible_cluster.txt', eligible_addresses_clusters)
 print(f"Общий процент для Clusters: {total_percentage_clusters}% | Кол-во eligible кошельков: {len(eligible_addresses_clusters)}")
-print("Элегибл адреса Clusters записаны в файл eligible_cluster.txt")
 
-# --------------------------------------------------------------------------------------------------------------
+address_percentages_tavaera = process_tavaera('tevaera.txt')
+eligible_addresses_tavaera = [address for address in wallet_addresses if address in address_percentages_tavaera]
+total_percentage_tavaera = sum(address_percentages_tavaera[address] for address in eligible_addresses_tavaera)
+write_to_file('eligible_tavaera.txt', eligible_addresses_tavaera)
+print(f"Общий процент для Tavaera: {total_percentage_tavaera}% | Кол-во eligible кошельков: {len(eligible_addresses_tavaera)}")
 
-print(f'НАХЕР ОПТИМИЗАЦИЮ ПАДАЖДИ ПОКА-что...... ДУМАЕМ.gif')
+print()
+print('Обработка полихедры, софт не завис....')
+print()
 
-# Открываем файл с процентами для каждого адреса (Polyhedra)
-df_polyhedra = pd.read_excel("polyhedra.xlsx")
 
-# Создаем пустой список для сохранения адресов и процентов совпадающих адресов
-matching_addresses_polyhedra = []
-matching_percentages_polyhedra = []
-
-# Проверяем каждый адрес из файла polyhedra.xlsx
-for address in df_polyhedra['address']:
-    if address in wallet_addresses:
-        # Если адрес найден в списке адресов, сохраняем адрес и процент
-        matching_addresses_polyhedra.append(address)
-        matching_percentages_polyhedra.append(df_polyhedra.loc[df_polyhedra['address'] == address, 'percentage'].iloc[0])
-
-# Считаем общий процент для Polyhedra
-total_percentage_polyhedra = sum(matching_percentages_polyhedra)
-
-# Выводим результаты для Polyhedra
+total_percentage_polyhedra, matching_addresses_polyhedra = process_polyhedra("polyhedra.xlsx")
+write_to_file('eligible_polyhedra.txt', matching_addresses_polyhedra)
 print(f"Общий процент для Polyhedra: {total_percentage_polyhedra:.8f}% | Кол-во eligible кошельков: {len(matching_addresses_polyhedra)}")
-print("Элегибл адреса Polyhedra записаны в файл eligible_polyhedra.txt")
-
-# Сохраняем совпавшие адреса для Polyhedra в файл eligible_polyhedra.txt
-with open('eligible_polyhedra.txt', 'w') as file:
-    for address in matching_addresses_polyhedra:
-        file.write(address + '\n')
-
